@@ -84,27 +84,4 @@ curve(gammaHaz(x, shape = .75, scale = 1 / .03), from = 0, to = 80,
 # “cumsum” function, and finally we use the relationship of the survival function to the 
 # cumulative hazard to get the survival outcome of interest.
 
-# ====================================================================================
-# Exercises ---------------------------------------------------------------
-# ====================================================================================
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# End file ----------------------------------------------------------------
