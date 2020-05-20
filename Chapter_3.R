@@ -73,7 +73,7 @@ legend("bottomleft", legend = c("Probability", "95% CI"),
 # the Nelson-Altschuler estimate may be obtained using the “survfit” function with the
 # option “type = "fh", the letters "fh" being taken from the initials of Fleming and 
 # Harrington:
-result_FH <- survfit(Surv(tt, cens) ~ 1, conf.type = "log-log", type = "fh")
+result_FH <- survfit(Surv(timeMonths, cens) ~ 1, conf.type = "log-log", type = "fh")
 summary(result_FH)
 
 plot(result_FH, xlab = "Time to event", ylab = "Survival probability",
@@ -82,21 +82,66 @@ legend("bottomleft", legend = c("Probability", "95% CI"),
        lty = c(1, 2), col = c("black", "grey"))
 
 # =======================================================================================
-# Finding the Median Survival and a Confidence Interval for the Median --------
+# Obtaining a Smoothed Hazard and Survival Function -----------------------
 # =======================================================================================
+# A better way to visualize the hazard function estimate is by using a “kernel” smoother.
+# A kernel is a function K.u/, which we center at each failure time. Typically we choose a 
+# smooth-shaped kernel, with the amount of smoothing controlled by a parameter b. The 
+# estimate of the hazard function is given by:
+
+#  h.hat(t) = 1 / b * ∑[i = 1, D] K * (t - t[i] / b) * d[i] / n[i]
+
+# where t[1] < t[2] < ... < t[D], are distinct ordered failure times.
+
+# While there are many ways to define the kernel function, a common one is the Epanechnikov 
+# kernel, K(u) = 3/4 * (1 - µ^2), defined for -1 ≥ µ ≥ 1, and zero elsewhere. In the above 
+# formula for the hazard, there is one kernel function placed at each failure time, scaled 
+# by the smoothing parameter b. Larger values of b result in wider kernel functions, and 
+# hence more smoothing. One problem with this simple approach to hazard estimation is that a 
+# kernel may put mass at negative times.
+
+# In the R package, there is a library “muhaz” for estimating and plotting nonparametric 
+# hazard functions.
+library(muhaz)
+t_vec <- c(7, 6, 6, 5, 2, 4)
+cens_vec <- c(0, 1, 0, 0, 1, 1)
+
+result_simple <- muhaz(t_vec, cens_vec, max.time = 8, bw.grid = 2.25, bw.method = "global",
+                       b.cor = "none")
+plot(result_simple)
+# The first two arguments are the failure times and censoring indicators, respectively; the 
+# maximum time is set at 8; the smoothing parameter b is specified by “bw.grid=2.25”; the 
+# “global” option means that a constant smoothing parameter is use for all times; and the 
+# “b.cor” option is set to “none” indicating that no boundary correction is to be done.
+
+# =======================================================================================
+# Left Truncation ---------------------------------------------------------
+# =======================================================================================
+# The times between diagnosis and entry into the trial are known as the “backward recurrence
+# times.” For patients with times from diagnosis to death (or censoring) is known as 
+# “left truncation”. Had a patient died during one of these intervals that patient would not
+# have been observed. To obtain an unbiased estimate of the survival distribution, we need 
+# to condition on the survival time being greater than the left truncation time. To do this, 
+# we construct the Kaplan-Meier estimator as we did earlier, but now a patient only enters 
+# the risk set at the left truncation time. Thus, unlike before, the size of the risk set 
+# can increase as well as decrease.
+tt <- c(7, 6, 6, 5, 2, 4)
+status <- c(0, 1, 0, 0, 1, 1)
+backTime <- c(-2, -5, -3, -3, -2, -5)
+tm_Enter <- -backTime
+tm_Exit <- tt - backTime
+
+result_leftTrunc <- survfit(Surv(tm_Enter, tm_Exit, status, type = "counting")
+                            ~ 1, conf.type = "none")
+summary(result_leftTrunc)
+# We have used the terms “tm.enter” and “tm.exit” for the left truncation and survival times, 
+# respectively. The reason is derived from the counting process theory, where a subject 
+# “enters” the observation period at a particular time and then “exits” it at the time of 
+# death or censoring; events that may occur outside of this observation period are not 
+# visible to us.
+
+# A serious problem arises with left-truncated data if the risk set becomes empty at an 
+# early survival time.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# End file ----------------------------------------------------------------
